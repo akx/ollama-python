@@ -20,12 +20,15 @@ pip install ollama
 from ollama import chat
 from ollama import ChatResponse
 
-response: ChatResponse = chat(model='llama3.2', messages=[
-  {
-    'role': 'user',
-    'content': 'Why is the sky blue?',
-  },
-])
+response: ChatResponse = chat(
+  model='llama3.2',
+  messages=[
+    {
+      'role': 'user',
+      'content': 'Why is the sky blue?',
+    },
+  ],
+)
 print(response['message']['content'])
 # or access fields directly from the response object
 print(response.message.content)
@@ -41,9 +44,9 @@ Response streaming can be enabled by setting `stream=True`.
 from ollama import chat
 
 stream = chat(
-    model='llama3.2',
-    messages=[{'role': 'user', 'content': 'Why is the sky blue?'}],
-    stream=True,
+  model='llama3.2',
+  messages=[{'role': 'user', 'content': 'Why is the sky blue?'}],
+  stream=True,
 )
 
 for chunk in stream:
@@ -57,16 +60,17 @@ All extra keyword arguments are passed into the [`httpx.Client`](https://www.pyt
 
 ```python
 from ollama import Client
-client = Client(
-  host='http://localhost:11434',
-  headers={'x-some-header': 'some-value'}
+
+client = Client(host='http://localhost:11434', headers={'x-some-header': 'some-value'})
+response = client.chat(
+  model='llama3.2',
+  messages=[
+    {
+      'role': 'user',
+      'content': 'Why is the sky blue?',
+    },
+  ],
 )
-response = client.chat(model='llama3.2', messages=[
-  {
-    'role': 'user',
-    'content': 'Why is the sky blue?',
-  },
-])
 ```
 
 ## Async client
@@ -77,9 +81,11 @@ The `AsyncClient` class is used to make asynchronous requests. It can be configu
 import asyncio
 from ollama import AsyncClient
 
+
 async def chat():
   message = {'role': 'user', 'content': 'Why is the sky blue?'}
   response = await AsyncClient().chat(model='llama3.2', messages=[message])
+
 
 asyncio.run(chat())
 ```
@@ -90,10 +96,12 @@ Setting `stream=True` modifies functions to return a Python asynchronous generat
 import asyncio
 from ollama import AsyncClient
 
+
 async def chat():
   message = {'role': 'user', 'content': 'Why is the sky blue?'}
   async for part in await AsyncClient().chat(model='llama3.2', messages=[message], stream=True):
     print(part['message']['content'], end='', flush=True)
+
 
 asyncio.run(chat())
 ```
@@ -129,10 +137,10 @@ ollama.show('llama3.2')
 ### Create
 
 ```python
-modelfile='''
+modelfile = """
 FROM llama3.2
 SYSTEM You are mario from super mario bros.
-'''
+"""
 
 ollama.create(model='example', modelfile=modelfile)
 ```
