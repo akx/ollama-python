@@ -1,14 +1,15 @@
 import base64
-import os
 import json
-from pydantic import ValidationError, BaseModel
-import pytest
+import os
 import tempfile
 from pathlib import Path
+
+import pytest
+from pydantic import BaseModel, ValidationError
 from pytest_httpserver import HTTPServer, URIPattern
 from werkzeug.wrappers import Request, Response
 
-from ollama._client import Client, AsyncClient, _copy_tools
+from ollama._client import CONNECTION_ERROR_MESSAGE, AsyncClient, Client, _copy_tools
 
 PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC'
 PNG_BYTES = base64.b64decode(PNG_BASE64)
@@ -91,7 +92,7 @@ def test_client_chat_stream(httpserver: HTTPServer):
 @pytest.mark.parametrize('message_format', ('dict', 'pydantic_model'))
 @pytest.mark.parametrize('file_style', ('path', 'bytes'))
 def test_client_chat_images(httpserver: HTTPServer, message_format: str, file_style: str, tmp_path):
-  from ollama._types import Message, Image
+  from ollama._types import Image, Message
 
   httpserver.expect_ordered_request(
     '/api/chat',
@@ -1111,3 +1112,30 @@ def test_tool_validation():
   with pytest.raises(ValidationError):
     invalid_tool = {'type': 'invalid_type', 'function': {'name': 'test'}}
     list(_copy_tools([invalid_tool]))
+
+
+def test_client_connection_error():
+  client = Client('http://localhost:1234')
+
+  with pytest.raises(ConnectionError, match=CONNECTION_ERROR_MESSAGE):
+    client.chat('model', messages=[{'role': 'user', 'content': 'prompt'}])
+  with pytest.raises(ConnectionError, match=CONNECTION_ERROR_MESSAGE):
+    client.chat('model', messages=[{'role': 'user', 'content': 'prompt'}])
+  with pytest.raises(ConnectionError, match=CONNECTION_ERROR_MESSAGE):
+    client.generate('model', 'prompt')
+  with pytest.raises(ConnectionError, match=CONNECTION_ERROR_MESSAGE):
+    client.show('model')
+
+
+@pytest.mark.asyncio
+async def test_async_client_connection_error():
+  client = AsyncClient('http://localhost:1234')
+  with pytest.raises(ConnectionError) as exc_info:
+    await client.chat('model', messages=[{'role': 'user', 'content': 'prompt'}])
+  assert str(exc_info.value) == 'Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download'
+  with pytest.raises(ConnectionError) as exc_info:
+    await client.generate('model', 'prompt')
+  assert str(exc_info.value) == 'Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download'
+  with pytest.raises(ConnectionError) as exc_info:
+    await client.show('model')
+  assert str(exc_info.value) == 'Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download'
